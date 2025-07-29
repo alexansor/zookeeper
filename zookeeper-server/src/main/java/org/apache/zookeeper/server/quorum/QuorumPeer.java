@@ -1139,7 +1139,9 @@ public class QuorumPeer extends ZooKeeperThread implements QuorumStats.Provider 
         } catch (AdminServerException e) {
             LOG.warn("Problem starting AdminServer", e);
         }
+        // 开始 Leader 选举
         startLeaderElection();
+        // 启动 Jvm 停止监视器
         startJvmPauseMonitor();
         super.start();
     }

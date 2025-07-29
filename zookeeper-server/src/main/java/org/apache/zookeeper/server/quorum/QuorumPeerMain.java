@@ -161,9 +161,11 @@ public class QuorumPeerMain {
         try {
             ServerMetrics.metricsProviderInitialized(metricsProvider);
             ProviderRegistry.initialize();
+            // 服务连接工厂，默认为 NIOServerCnxnFactory
             ServerCnxnFactory cnxnFactory = null;
             ServerCnxnFactory secureCnxnFactory = null;
 
+            // 初始化连接工厂，包括创建 AcceptThread，SelectorThread
             if (config.getClientPortAddress() != null) {
                 cnxnFactory = ServerCnxnFactory.createFactory();
                 cnxnFactory.configure(config.getClientPortAddress(), config.getMaxClientCnxns(), config.getClientPortListenBacklog(), false);
@@ -174,6 +176,7 @@ public class QuorumPeerMain {
                 secureCnxnFactory.configure(config.getSecureClientPortAddress(), config.getMaxClientCnxns(), config.getClientPortListenBacklog(), true);
             }
 
+            // 获取 quorumPeer 对象
             quorumPeer = getQuorumPeer();
             quorumPeer.setTxnFactory(new FileTxnSnapLog(config.getDataLogDir(), config.getDataDir()));
             quorumPeer.enableLocalSessions(config.areLocalSessionsEnabled());

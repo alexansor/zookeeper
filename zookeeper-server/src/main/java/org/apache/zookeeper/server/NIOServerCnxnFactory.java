@@ -623,7 +623,9 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
         configureSaslLogin();
 
         maxClientCnxns = maxcc;
+        // 初始化最大连接数，默认为0
         initMaxCnxns();
+        // 设置连接超时时间
         sessionlessCnxnTimeout = Integer.getInteger(ZOOKEEPER_NIO_SESSIONLESS_CNXN_TIMEOUT, 10000);
         // We also use the sessionlessCnxnTimeout as expiring interval for
         // cnxnExpiryQueue. These don't need to be the same, but the expiring
@@ -650,10 +652,12 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory {
             + (numWorkerThreads > 0 ? numWorkerThreads : "no") + " worker threads, and "
             + (directBufferBytes == 0 ? "gathered writes." : ("" + (directBufferBytes / 1024) + " kB direct buffers."));
         LOG.info(logMsg);
+        // 初始化 SelectorThreads
         for (int i = 0; i < numSelectorThreads; ++i) {
             selectorThreads.add(new SelectorThread(i));
         }
 
+        // 创建 ServerSocketChannel，监听连接
         listenBacklog = backlog;
         this.ss = ServerSocketChannel.open();
         ss.socket().setReuseAddress(true);

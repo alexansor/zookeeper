@@ -1011,10 +1011,12 @@ public class FastLeaderElection implements Election {
                             LOG.debug("Ignoring notification from member with -1 zxid {}", n.sid);
                             break;
                         }
+                        // 如果选举的逻辑时钟大于当前是时钟，说明是新的选举，更新当前服务是时钟为选举时钟，并且将之前收到的来自其他server的投票结果清空，然后判断是否需要更新自身的投票
                         // If notification > current, replace and send messages out
                         if (n.electionEpoch > logicalclock.get()) {
                             logicalclock.set(n.electionEpoch);
                             recvset.clear();
+                            // 判断是否需要重新投票，先比较 epoll、再比较 zxid、再比较 serverId，当收到的比较新时，会更新自身的 epoll 和 zxid，然后广播给其他 server
                             if (totalOrderPredicate(n.leader, n.zxid, n.peerEpoch, getInitId(), getInitLastLoggedZxid(), getPeerEpoch())) {
                                 updateProposal(n.leader, n.zxid, n.peerEpoch);
                             } else {
@@ -1040,6 +1042,7 @@ public class FastLeaderElection implements Election {
                             Long.toHexString(n.electionEpoch));
 
                         // don't care about the version if it's in LOOKING state
+                        // 加入投票队伍
                         recvset.put(n.sid, new Vote(n.leader, n.zxid, n.electionEpoch, n.peerEpoch));
 
                         voteSet = getVoteTracker(recvset, new Vote(proposedLeader, proposedZxid, logicalclock.get(), proposedEpoch));
@@ -1047,6 +1050,7 @@ public class FastLeaderElection implements Election {
                         if (voteSet.hasAllQuorums()) {
 
                             // Verify if there is any change in the proposed leader
+                            // 再等待一会，看是否有新的投票
                             while ((n = recvqueue.poll(finalizeWait, TimeUnit.MILLISECONDS)) != null) {
                                 if (totalOrderPredicate(n.leader, n.zxid, n.peerEpoch, proposedLeader, proposedZxid, proposedEpoch)) {
                                     recvqueue.put(n);
@@ -1058,6 +1062,8 @@ public class FastLeaderElection implements Election {
                              * This predicate is true once we don't read any new
                              * relevant message from the reception queue
                              */
+                            // 如果没有新的投票，则选举结束
+                            // 设置自身状态
                             if (n == null) {
                                 setPeerState(proposedLeader, voteSet);
                                 Vote endVote = new Vote(proposedLeader, proposedZxid, logicalclock.get(), proposedEpoch);
